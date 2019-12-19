@@ -61,60 +61,51 @@ class Net(object):
 
         net = inputs
 
-        with tf.variable_scope('Conv'):
+        # block1
+        net = slim.repeat(net, 2, slim.conv2d, 64, [3, 3],
+                          scope='conv1', padding='SAME')
 
-            # block1
-            net = slim.repeat(net, 2, slim.conv2d, 64, [3, 3],
-                              scope='conv1', padding='SAME')
+        net = slim.max_pool2d(net, [2, 2], scope='pool1', padding='SAME')
 
-            net = slim.max_pool2d(net, [2, 2], scope='pool1', padding='SAME')
+        # block2
+        net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3],
+                          scope='conv2', padding='SAME')
 
-            # block2
-            net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3],
-                              scope='conv2', padding='SAME')
+        net = slim.max_pool2d(net, [2, 2], scope='pool2', padding='SAME')
+        net = tf.layers.batch_normalization(net, training=self.is_training)
 
-            net = slim.max_pool2d(net, [2, 2], scope='pool2', padding='SAME')
+        # block3
+        net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3],
+                          scope='conv3', padding='SAME')
 
-            # block3
-            net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3],
-                              scope='conv3', padding='SAME')
+        net = slim.max_pool2d(net, [2, 2], scope='pool3', padding='SAME')
 
-            net = slim.max_pool2d(net, [2, 2], scope='pool3', padding='SAME')
+        # block4
+        net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3],
+                          scope='conv4', padding='SAME')
 
-            # block4
-            net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3],
-                              scope='conv4', padding='SAME')
+        net = slim.max_pool2d(net, [2, 2], scope='pool4', padding='SAME')
+        net = tf.layers.batch_normalization(net, training=self.is_training)
 
-            net = slim.max_pool2d(net, [2, 2], scope='pool4', padding='SAME')
+        # block5
+        net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3],
+                          scope='conv5', padding='SAME')
 
-            # block5
-            net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3],
-                              scope='conv5', padding='SAME')
+        net = slim.max_pool2d(net, [2, 2], scope='pool5', padding='SAME')
 
-            net = slim.max_pool2d(net, [2, 2], scope='pool5', padding='SAME')
+        net = tf.layers.flatten(net)
 
-            net = tf.layers.flatten(net)
+        net = tf.layers.dense(net, 4096)
 
-        with tf.variable_scope('fc1'):
+        if self.is_training:
+            net = tf.nn.dropout(net, keep_prob=self.keep_rate)
 
-            net = tf.layers.dense(net, 4096)
+        net = tf.layers.dense(net, 4096)
 
-            if self.is_training:
-                net = tf.nn.dropout(net, keep_prob=self.keep_rate)
+        if self.is_training:
+            net = tf.nn.dropout(net, keep_prob=self.keep_rate)
 
-        with tf.variable_scope('fc2'):
-
-            net = tf.layers.dense(net, 4096)
-
-            if self.is_training:
-                net = tf.nn.dropout(net, keep_prob=self.keep_rate)
-
-        with tf.variable_scope('fc3'):
-
-            net = tf.layers.dense(net, 1000)
-
-            if self.is_training:
-                net = tf.nn.dropout(net, keep_prob=self.keep_rate)
+        net = tf.layers.dense(net, 1000)
 
         logits = tf.layers.dense(net, self.cls_num)
 

@@ -125,9 +125,10 @@ class Reader(object):
 
         image = cv2.imread(path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image = image-(122, 122, 122)
+        
+        result = self.normalize(image)
 
-        return image.astype(np.float)
+        return result
 
     def one_hot(self, label):
 
@@ -136,6 +137,15 @@ class Reader(object):
         one_hot[label] = 1
 
         return one_hot
+
+    def normalize(self, image):
+
+        mean = np.mean(image)
+        var = np.mean(np.square(image-mean))
+
+        image = (image - mean)/var
+
+        return image
 
     def generate_test(self, batch_size):
 

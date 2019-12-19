@@ -36,6 +36,15 @@ class Classifier(object):
 
         return image
 
+    def normalize(self, image):
+
+        mean = np.mean(image)
+        var = np.mean(np.square(image-mean))
+
+        image = (image - mean)/var
+
+        return image
+
     def random_crop(self, image):
 
         image = self.resize_image(image)
@@ -58,7 +67,7 @@ class Classifier(object):
 
         image = cv2.imread(path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image = image-(122, 122, 122)
+        image = self.normalize(image)
 
         return image.astype(np.float)
 
