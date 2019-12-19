@@ -4,7 +4,6 @@ import random
 import os
 import pickle
 import cv2
-from tensorflow.contrib.layers import xavier_initializer
 
 
 class Reader(object):
@@ -47,6 +46,16 @@ class Reader(object):
                 self.test_data = pickle.load(f)
         else:
             self.test_data = self.load_image_path(is_training=False)
+
+    def normalize(self, image):
+    
+        mean = np.mean(image)
+        var = np.mean(np.square(image-mean))
+
+        image = (image - mean)/var
+
+        return image
+
 
     def resize_image(self, image):
 
@@ -125,10 +134,9 @@ class Reader(object):
 
         image = cv2.imread(path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        
-        result = self.normalize(image)
+        image = self.normalize(image)
 
-        return result
+        return image.astype(np.float)
 
     def one_hot(self, label):
 
@@ -137,15 +145,6 @@ class Reader(object):
         one_hot[label] = 1
 
         return one_hot
-
-    def normalize(self, image):
-
-        mean = np.mean(image)
-        var = np.mean(np.square(image-mean))
-
-        image = (image - mean)/var
-
-        return image
 
     def generate_test(self, batch_size):
 

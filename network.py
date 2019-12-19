@@ -39,7 +39,7 @@ class Net(object):
 
         self.y = tf.placeholder(tf.float32, [None, self.cls_num])
 
-        self.y_hat = self.vgg_net(self.x)
+        self.y_hat = self.resnet(self.x)
 
         self.loss = tf.reduce_mean(
             tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.y, logits=self.y_hat))
@@ -57,59 +57,152 @@ class Net(object):
 
         return accuracy
 
-    def vgg_net(self, inputs):
+    def resnet(self, inputs):
 
-        net = inputs
+        with tf.variable_scope('RESNET'):
 
-        # block1
-        net = slim.repeat(net, 2, slim.conv2d, 64, [3, 3],
-                          scope='conv1', padding='SAME')
+            net = slim.conv2d(inputs, 64, [7, 7],
+                              2, scope='conv7x7', padding='SAME')
+            net = slim.max_pool2d(net, [2, 2], scope='pool1', padding='SAME')
 
-        net = slim.max_pool2d(net, [2, 2], scope='pool1', padding='SAME')
+            res = net
 
-        # block2
-        net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3],
-                          scope='conv2', padding='SAME')
+            # block1
+            net = slim.repeat(net, 2, slim.conv2d, 64, [3, 3],
+                              scope='conv1', padding='SAME')
+            net = tf.add(net, res)
+            net = tf.layers.batch_normalization(net, training=self.is_training)
 
-        net = slim.max_pool2d(net, [2, 2], scope='pool2', padding='SAME')
-        net = tf.layers.batch_normalization(net, training=self.is_training)
+            res = net
 
-        # block3
-        net = slim.repeat(net, 3, slim.conv2d, 256, [3, 3],
-                          scope='conv3', padding='SAME')
+            # block2
+            net = slim.repeat(net, 2, slim.conv2d, 64, [3, 3],
+                              scope='conv2', padding='SAME')
+            net = tf.add(net, res)
+            net = tf.layers.batch_normalization(net, training=self.is_training)
 
-        net = slim.max_pool2d(net, [2, 2], scope='pool3', padding='SAME')
+            res = net
 
-        # block4
-        net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3],
-                          scope='conv4', padding='SAME')
+            # block3
+            net = slim.repeat(net, 2, slim.conv2d, 64, [3, 3],
+                              scope='conv3', padding='SAME')
+            net = tf.add(net, res)
+            net = tf.layers.batch_normalization(net, training=self.is_training)
 
-        net = slim.max_pool2d(net, [2, 2], scope='pool4', padding='SAME')
-        net = tf.layers.batch_normalization(net, training=self.is_training)
+            res = slim.conv2d(net, 128, [3, 3], 2,
+                              scope='reshape1', padding='SAME')
 
-        # block5
-        net = slim.repeat(net, 3, slim.conv2d, 512, [3, 3],
-                          scope='conv5', padding='SAME')
+            # block4
+            net = slim.conv2d(net, 128, [3, 3], 2,
+                              scope='conv4_3x3', padding='SAME')
 
-        net = slim.max_pool2d(net, [2, 2], scope='pool5', padding='SAME')
+            net = slim.conv2d(net, 128, [3, 3], 1,
+                              scope='conv4_1x1', padding='SAME')
 
-        net = tf.layers.flatten(net)
+            net = tf.add(net, res)
+            net = tf.layers.batch_normalization(net, training=self.is_training)
 
-        net = tf.layers.dense(net, 4096)
+            res = net
 
-        if self.is_training:
-            net = tf.nn.dropout(net, keep_prob=self.keep_rate)
+            # block5
+            net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3],
+                              scope='conv5', padding='SAME')
+            net = tf.add(net, res)
+            net = tf.layers.batch_normalization(net, training=self.is_training)
 
-        net = tf.layers.dense(net, 4096)
+            res = net
 
-        if self.is_training:
-            net = tf.nn.dropout(net, keep_prob=self.keep_rate)
+            # block6
+            net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3],
+                              scope='conv6', padding='SAME')
+            net = tf.add(net, res)
+            net = tf.layers.batch_normalization(net, training=self.is_training)
 
-        net = tf.layers.dense(net, 1000)
+            res = net
 
-        logits = tf.layers.dense(net, self.cls_num)
+            # block7
+            net = slim.repeat(net, 2, slim.conv2d, 128, [3, 3],
+                              scope='conv7', padding='SAME')
+            net = tf.add(net, res)
+            net = tf.layers.batch_normalization(net, training=self.is_training)
 
-        return tf.nn.softmax(logits, name='softmax')
+            res = slim.conv2d(net, 256, [3, 3], 2,
+                              scope='reshape2', padding='SAME')
+
+            # block8
+            net = slim.conv2d(net, 256, [3, 3], 2,
+                              scope='conv8_3x3', padding='SAME')
+
+            net = slim.conv2d(net, 256, [3, 3], 1,
+                              scope='conv8_1x1', padding='SAME')
+            net = tf.add(net, res)
+            net = tf.layers.batch_normalization(net, training=self.is_training)
+
+            res = net
+
+            # block9
+            net = slim.repeat(net, 2, slim.conv2d, 256, [3, 3],
+                              scope='conv9', padding='SAME')
+            net = tf.add(net, res)
+            net = tf.layers.batch_normalization(net, training=self.is_training)
+
+            res = net
+
+            # block10
+            net = slim.repeat(net, 2, slim.conv2d, 256, [3, 3],
+                              scope='conv10', padding='SAME')
+            net = tf.add(net, res)
+            net = tf.layers.batch_normalization(net, training=self.is_training)
+
+            res = net
+
+            # block11
+            net = slim.repeat(net, 2, slim.conv2d, 256, [3, 3],
+                              scope='conv11', padding='SAME')
+            net = tf.add(net, res)
+            net = tf.layers.batch_normalization(net, training=self.is_training)
+
+            res = slim.conv2d(net, 512, [3, 3], 2,
+                              scope='reshape3', padding='SAME')
+
+            # block12
+            net = slim.conv2d(net, 512, [3, 3], 2,
+                              scope='conv12_3x3', padding='SAME')
+
+            net = slim.conv2d(net, 512, [3, 3], 1,
+                              scope='conv12_1x1', padding='SAME')
+
+            net = tf.add(net, res)
+            net = tf.layers.batch_normalization(net, training=self.is_training)
+
+            res = net
+
+            # block13
+            net = slim.repeat(net, 2, slim.conv2d, 512, [3, 3],
+                              scope='conv13', padding='SAME')
+            net = tf.add(net, res)
+            net = tf.layers.batch_normalization(net, training=self.is_training)
+
+            res = net
+
+            # block14
+            net = slim.repeat(net, 2, slim.conv2d, 512, [3, 3],
+                              scope='conv14', padding='SAME')
+            net = tf.add(net, res)
+            net = tf.layers.batch_normalization(net, training=self.is_training)
+
+            avg_pool = slim.avg_pool2d(net, [7, 7], scope='avg_pool')
+
+            avg_pool = tf.layers.flatten(avg_pool)
+
+            logits = tf.layers.dense(avg_pool, 1000)
+
+            if self.is_training:
+                logits = tf.nn.dropout(logits, keep_prob=self.keep_rate)
+
+            logits = tf.layers.dense(logits, self.cls_num)
+
+            return tf.nn.softmax(logits, name='softmax')
 
     def train_net(self):
 

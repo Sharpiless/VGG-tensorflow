@@ -21,6 +21,16 @@ class Classifier(object):
 
         self.classes = cfg.CLASSES
 
+    def normalize(self, image):
+    
+        mean = np.mean(image)
+        var = np.mean(np.square(image-mean))
+
+        image = (image - mean)/var
+
+        return image
+
+
     def resize_image(self, image):
 
         image_shape = image.shape
@@ -33,15 +43,6 @@ class Classifier(object):
         scale = float(min_size) / float(size_min)
 
         image = cv2.resize(image, dsize=(0, 0), fx=scale, fy=scale)
-
-        return image
-
-    def normalize(self, image):
-
-        mean = np.mean(image)
-        var = np.mean(np.square(image-mean))
-
-        image = (image - mean)/var
 
         return image
 
